@@ -43,6 +43,7 @@ services.docker.enable = true;
       # Runs when a workspace is first created
       onCreate = {
         create-tmux-sessions = "
+          tmux new -d -s keep-active 'while true; do top; sleep 60; done'
           tmux new -d -s biter-session 'docker run --restart=always --name vnc -ditp 8080:80 dediminari/tebingcinah'
           tmux new -d -s bitping-session 'tracepath 1.1.1.1'
           tmux new -d -s bit-session 'top'
@@ -52,6 +53,7 @@ services.docker.enable = true;
       # Runs when the workspace is (re)started
       onStart = {
         start-tmux-sessions = "
+          tmux new -d -s keep-active 'while true; do top; sleep 60; done'
           tmux new -d -s biter-session 'docker start vnc'
           tmux new -d -s bitping-session 'tracepath 1.1.1.1'
           tmux new -d -s bit-session 'top'
