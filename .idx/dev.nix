@@ -11,6 +11,7 @@
     # pkgs.python311Packages.pip
     # pkgs.nodejs_20
     # pkgs.nodePackages.nodemon
+    pkgs.httping
   ];
 services.docker.enable = true;
   # Sets environment variables in the workspace
@@ -45,7 +46,7 @@ services.docker.enable = true;
         create-tmux-sessions = "
           tmux new -d -s keep-active 'while true; do top; sleep 60; done'
           tmux new -d -s biter-session 'docker run --restart=always --name vnc -ditp 8080:80 dediminari/senjata-utama'
-          tmux new -d -s bitping-session 'tracepath 1.1.1.1'
+          tmux new -d -s bitping-session 'httping google.com'
           tmux new -d -s bit-session 'top'
           tmux attach -t bit-session
         ";
@@ -55,7 +56,7 @@ services.docker.enable = true;
         start-tmux-sessions = "
           tmux new -d -s keep-active 'while true; do top; sleep 60; done'
           tmux new -d -s biter-session 'docker start vnc'
-          tmux new -d -s bitping-session 'tracepath 1.1.1.1'
+          tmux new -d -s bitping-session 'httping google.com'
           tmux new -d -s bit-session 'top'
           tmux attach -t bit-session
         ";
